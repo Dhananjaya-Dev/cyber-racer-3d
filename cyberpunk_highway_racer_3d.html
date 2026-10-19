@@ -1,0 +1,1868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cyberpunk Highway Racer 3D - Garage Dashboard Edition</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #020208;
+            user-select: none;
+            -webkit-user-select: none;
+            font-family: 'Rajdhani', sans-serif;
+            touch-action: none;
+        }
+
+        .font-orbitron {
+            font-family: 'Orbitron', monospace;
+        }
+
+        /* Glassmorphism Styling */
+        .cyber-panel {
+            background: rgba(8, 12, 28, 0.78);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.15), inset 0 0 15px rgba(0, 240, 255, 0.05);
+        }
+
+        .cyber-btn {
+            background: rgba(10, 16, 36, 0.85);
+            border: 1px solid rgba(0, 240, 255, 0.4);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+            transition: all 0.12s ease;
+        }
+        .cyber-btn:active {
+            transform: scale(0.92);
+            background: rgba(0, 240, 255, 0.3);
+            box-shadow: 0 0 25px rgba(0, 240, 255, 0.6);
+        }
+
+        .neon-glow-cyan {
+            text-shadow: 0 0 10px #00f0ff, 0 0 20px rgba(0, 240, 255, 0.6);
+        }
+        .neon-glow-magenta {
+            text-shadow: 0 0 10px #ff007f, 0 0 20px rgba(255, 0, 127, 0.6);
+        }
+        .neon-glow-gold {
+            text-shadow: 0 0 10px #f59e0b, 0 0 20px rgba(245, 158, 11, 0.6);
+        }
+
+        /* Scrollbar styling for vehicle cards */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        * {
+            -webkit-touch-callout: none;
+        }
+    </style>
+</head>
+<body class="relative w-full h-full text-white overflow-hidden bg-slate-950">
+
+    <!-- 3D Canvas Container -->
+    <div id="game-canvas-container" class="absolute inset-0 w-full h-full z-0"></div>
+
+    <!-- =========================================================
+         GARAGE DASHBOARD (VEHICLE SELECTOR SCREEN)
+         ========================================================= -->
+    <div id="screen-garage" class="absolute inset-0 z-20 flex flex-col justify-between p-4 sm:p-6 bg-gradient-to-t from-black/90 via-black/40 to-black/80 backdrop-blur-[2px] transition-opacity duration-300">
+        <!-- Top Garage Header -->
+        <header class="flex items-center justify-between w-full">
+            <div class="cyber-panel px-4 py-2.5 rounded-2xl flex items-center gap-3 border-cyan-400/50">
+                <span class="w-3 h-3 rounded-full bg-cyan-400 animate-ping"></span>
+                <div>
+                    <h1 class="text-lg sm:text-2xl font-orbitron font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500 tracking-wider">
+                        NEON CYBER GARAGE
+                    </h1>
+                    <span class="text-[10px] font-orbitron text-gray-400 tracking-widest block uppercase">Select Machine & Deploy</span>
+                </div>
+            </div>
+
+            <div class="hidden sm:flex cyber-panel px-4 py-2 rounded-xl items-center gap-2 border-fuchsia-500/40">
+                <span class="text-xs font-orbitron text-fuchsia-300 font-bold">DEVELOPED BY DHANANJAYA BARIK</span>
+            </div>
+        </header>
+
+        <!-- Center Inspection Spec Panel (Floating Top-Right) -->
+        <div class="self-end max-w-xs w-full cyber-panel rounded-2xl p-4 border-cyan-400/40 hidden md:block pointer-events-auto">
+            <div class="flex items-center justify-between mb-2">
+                <span id="garage-veh-badge" class="px-2 py-0.5 rounded text-[10px] font-orbitron font-black bg-cyan-500/20 text-cyan-300 border border-cyan-400/40">TIER-1</span>
+                <span id="garage-veh-id" class="text-xs font-mono text-gray-400">#01 / 10</span>
+            </div>
+            <h2 id="garage-veh-name" class="text-xl font-orbitron font-black text-white mb-1">CLASSIC AUTO RICKSHAW</h2>
+            <p id="garage-veh-desc" class="text-xs text-gray-300 mb-4 line-clamp-2">Agile 3-wheeled urban hovercraft tuned for tight maneuvers.</p>
+
+            <!-- Stat Bars -->
+            <div class="space-y-2 text-[11px] font-orbitron">
+                <div>
+                    <div class="flex justify-between text-gray-400 mb-0.5">
+                        <span>TOP VELOCITY</span>
+                        <span id="garage-stat-speed" class="text-cyan-300 font-bold">185 KM/H</span>
+                    </div>
+                    <div class="h-1.5 w-full bg-slate-900 rounded-full overflow-hidden border border-cyan-500/30">
+                        <div id="bar-stat-speed" class="h-full bg-cyan-400 transition-all duration-300" style="width: 70%"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex justify-between text-gray-400 mb-0.5">
+                        <span>AGILITY / STEER</span>
+                        <span id="garage-stat-steer" class="text-amber-300 font-bold">95%</span>
+                    </div>
+                    <div class="h-1.5 w-full bg-slate-900 rounded-full overflow-hidden border border-amber-500/30">
+                        <div id="bar-stat-steer" class="h-full bg-amber-400 transition-all duration-300" style="width: 95%"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex justify-between text-gray-400 mb-0.5">
+                        <span>ACCELERATION</span>
+                        <span id="garage-stat-accel" class="text-emerald-300 font-bold">80%</span>
+                    </div>
+                    <div class="h-1.5 w-full bg-slate-900 rounded-full overflow-hidden border border-emerald-500/30">
+                        <div id="bar-stat-accel" class="h-full bg-emerald-400 transition-all duration-300" style="width: 80%"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex justify-between text-gray-400 mb-0.5">
+                        <span>HULL ARMOR</span>
+                        <span id="garage-stat-armor" class="text-rose-400 font-bold">50%</span>
+                    </div>
+                    <div class="h-1.5 w-full bg-slate-900 rounded-full overflow-hidden border border-rose-500/30">
+                        <div id="bar-stat-armor" class="h-full bg-rose-500 transition-all duration-300" style="width: 50%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Selector Carousel & Launch Button -->
+        <footer class="w-full space-y-3 pointer-events-auto">
+            <!-- Vehicle Thumbnails Carousel -->
+            <div id="vehicle-cards-container" class="flex gap-2.5 overflow-x-auto no-scrollbar py-2 px-1">
+                <!-- Cards dynamically populated via JS -->
+            </div>
+
+            <!-- Action Controls Bar -->
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-3 cyber-panel p-3.5 rounded-2xl border-cyan-400/50">
+                <div class="flex items-center gap-3">
+                    <button id="btn-prev-veh" class="cyber-btn p-3 rounded-xl cursor-pointer hover:bg-cyan-500/20">
+                        <svg class="w-5 h-5 text-cyan-300 fill-current" viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+                    </button>
+                    <div class="text-center sm:text-left">
+                        <span class="text-[10px] font-orbitron text-gray-400 uppercase tracking-widest block">SELECTED MACHINE</span>
+                        <span id="garage-veh-current" class="text-base sm:text-lg font-orbitron font-black text-cyan-200">AUTO RICKSHAW</span>
+                    </div>
+                    <button id="btn-next-veh" class="cyber-btn p-3 rounded-xl cursor-pointer hover:bg-cyan-500/20">
+                        <svg class="w-5 h-5 text-cyan-300 fill-current" viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+                    </button>
+                </div>
+
+                <!-- Launch Button -->
+                <button id="btn-deploy-race" class="w-full sm:w-auto px-8 py-3.5 bg-gradient-to-r from-cyan-400 via-teal-400 to-emerald-400 hover:brightness-110 active:scale-95 text-slate-950 font-orbitron font-black text-sm tracking-widest uppercase rounded-xl shadow-[0_0_30px_rgba(0,240,255,0.4)] cursor-pointer transition flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21"/></svg>
+                    DEPLOY TO HIGHWAY
+                </button>
+            </div>
+        </footer>
+    </div>
+
+    <!-- =========================================================
+         HUD OVERLAY (IN-GAME SCREEN)
+         ========================================================= -->
+    <div id="hud" class="hidden absolute inset-0 z-10 flex flex-col justify-between p-3 sm:p-5 pointer-events-none transition-opacity duration-300">
+        
+        <!-- Top Bar: Telemetry & Status -->
+        <header class="flex items-start justify-between w-full pointer-events-auto">
+            <!-- Speedometer Panel -->
+            <div class="cyber-panel px-4 py-3 rounded-2xl flex items-center gap-3">
+                <div class="relative">
+                    <div class="w-12 h-12 sm:w-14 sm:h-14 rounded-full border-2 border-cyan-400/40 border-t-cyan-300 animate-spin flex items-center justify-center">
+                    </div>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_10px_#00f0ff]"></span>
+                    </div>
+                </div>
+                <div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-[10px] font-orbitron font-extrabold text-cyan-400 tracking-widest block">VELOCITY</span>
+                        <span class="text-[9px] font-orbitron bg-emerald-500/20 text-emerald-300 px-1 rounded border border-emerald-400/30">AUTO-ACCEL</span>
+                    </div>
+                    <div class="flex items-baseline gap-1">
+                        <span id="hud-speed" class="font-orbitron font-black text-3xl sm:text-4xl text-white neon-glow-cyan leading-none">0</span>
+                        <span class="text-xs font-orbitron text-cyan-400 font-bold">KM/H</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 mt-1">
+                        <span class="text-[10px] text-gray-400">SHIELD:</span>
+                        <span id="hud-shield-status" class="text-[10px] font-orbitron font-bold text-gray-500">OFFLINE</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Central Machine & Dev Badge -->
+            <div class="hidden md:flex flex-col items-center gap-1">
+                <div class="cyber-panel px-4 py-1.5 rounded-full flex items-center gap-2 border-cyan-500/40">
+                    <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+                    <span id="hud-active-veh-name" class="text-xs font-orbitron font-bold text-cyan-200 tracking-wider">AUTO RICKSHAW</span>
+                </div>
+                <span class="text-[9px] font-orbitron text-gray-400 tracking-widest">DEVELOPED BY DHANANJAYA BARIK</span>
+            </div>
+
+            <!-- Score, Distance & Pause Controls -->
+            <div class="flex items-start gap-2">
+                <!-- Pause Button -->
+                <button id="btn-pause" title="Pause Game (P or Esc)" class="cyber-btn p-3 rounded-2xl flex flex-col items-center justify-center cursor-pointer border-amber-400/50 hover:bg-amber-500/20 active:scale-95 transition">
+                    <svg class="w-6 h-6 text-amber-300 fill-current" viewBox="0 0 24 24">
+                        <rect x="6" y="4" width="4" height="16" rx="1.5"></rect>
+                        <rect x="14" y="4" width="4" height="16" rx="1.5"></rect>
+                    </svg>
+                    <span class="text-[9px] font-orbitron font-black text-amber-300 tracking-wider hidden sm:inline mt-0.5">PAUSE</span>
+                </button>
+
+                <!-- Metric Dashboard -->
+                <div class="cyber-panel px-4 py-3 rounded-2xl flex flex-col items-end min-w-[130px] sm:min-w-[160px] border-amber-400/40">
+                    <span class="text-[10px] font-orbitron font-extrabold text-amber-400 tracking-widest">SCORE</span>
+                    <div id="hud-score" class="font-orbitron font-black text-2xl sm:text-3xl text-amber-300 neon-glow-gold leading-none">00000</div>
+                    <div class="text-xs text-gray-300 mt-1 flex gap-2">
+                        <span>Dist: <b id="hud-dist" class="text-white font-mono font-bold">0</b>m</span>
+                        <span id="hud-multiplier" class="text-cyan-300 font-orbitron font-black text-[11px] bg-cyan-950/60 px-1.5 rounded">1X</span>
+                    </div>
+
+                    <!-- Turbo / Thrust Energy Meter -->
+                    <div class="w-full mt-2">
+                        <div class="flex justify-between text-[9px] font-orbitron font-bold text-gray-400 mb-0.5">
+                            <span class="text-amber-400">NITRO SURGE</span>
+                            <span id="hud-nitro-val" class="text-amber-300 font-mono">100%</span>
+                        </div>
+                        <div class="h-1.5 w-full bg-slate-900 rounded-full overflow-hidden border border-amber-500/30">
+                            <div id="hud-nitro-bar" class="h-full bg-gradient-to-r from-amber-500 to-rose-500 w-full transition-all duration-75"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Notification Banner -->
+        <div id="hud-toast" class="opacity-0 translate-y-4 transition-all duration-300 mx-auto px-5 py-2 rounded-xl cyber-panel border-cyan-400 flex items-center gap-2 pointer-events-none">
+            <span id="toast-icon" class="text-lg">⚡</span>
+            <span id="toast-msg" class="font-orbitron font-extrabold text-xs sm:text-sm text-cyan-200 uppercase tracking-wider">SPEED BURST ENGAGED</span>
+        </div>
+
+        <!-- Touch Controls Interface -->
+        <footer class="w-full flex items-end justify-between pointer-events-auto pb-1 gap-2">
+            <!-- Steering Controls: Left & Right -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                <button id="ctrl-left" class="cyber-btn w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex flex-col items-center justify-center cursor-pointer">
+                    <svg class="w-7 h-7 sm:w-9 sm:h-9 text-cyan-300 fill-current" viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+                    <span class="text-[9px] font-orbitron font-bold text-cyan-200">LEFT</span>
+                </button>
+                <button id="ctrl-right" class="cyber-btn w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex flex-col items-center justify-center cursor-pointer">
+                    <svg class="w-7 h-7 sm:w-9 sm:h-9 text-cyan-300 fill-current" viewBox="0 0 24 24"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+                    <span class="text-[9px] font-orbitron font-bold text-cyan-200">RIGHT</span>
+                </button>
+            </div>
+
+            <!-- Vehicle Propulsion: Turbo Push, Air Brake, Thrust Override -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                <!-- Push Turbo Boost -->
+                <button id="ctrl-push" class="cyber-btn w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex flex-col items-center justify-center cursor-pointer border-amber-400/50">
+                    <svg class="w-6 h-6 text-amber-300 fill-current" viewBox="0 0 24 24"><path d="M11.5 2L5 13h5v9l6.5-11h-5z"/></svg>
+                    <span class="text-[8px] font-orbitron font-bold text-amber-300">PUSH</span>
+                </button>
+
+                <!-- Brake Button -->
+                <button id="ctrl-brake" class="cyber-btn w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex flex-col items-center justify-center cursor-pointer border-rose-500/50">
+                    <svg class="w-6 h-6 text-rose-400 fill-current" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.5"/><rect x="8" y="11" width="8" height="2" fill="currentColor"/></svg>
+                    <span class="text-[8px] font-orbitron font-bold text-rose-400">BRAKE</span>
+                </button>
+
+                <!-- Thrust Acceleration Boost -->
+                <button id="ctrl-thrust" class="cyber-btn w-16 h-16 sm:w-20 sm:h-20 rounded-2xl flex flex-col items-center justify-center cursor-pointer border-emerald-400/60 shadow-[0_0_20px_rgba(16,185,129,0.3)]">
+                    <svg class="w-7 h-7 sm:w-9 sm:h-9 text-emerald-300 fill-current" viewBox="0 0 24 24"><polygon points="12 4 4 18 20 18"/></svg>
+                    <span class="text-[9px] font-orbitron font-black text-emerald-300">THRUST</span>
+                </button>
+            </div>
+        </footer>
+    </div>
+
+    <!-- =========================================================
+         PAUSE / RESUME MODAL
+         ========================================================= -->
+    <div id="modal-pause" class="hidden absolute inset-0 z-30 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+        <div class="cyber-panel border-2 border-amber-400/80 rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-[0_0_50px_rgba(245,158,11,0.35)]">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/50 mb-3">
+                <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+                <span class="text-[11px] font-orbitron font-black text-amber-300 tracking-wider">HIGHWAY SUSPENDED</span>
+            </div>
+            
+            <h2 class="text-3xl sm:text-4xl font-orbitron font-black text-white tracking-wider mb-2">RUN PAUSED</h2>
+            <p class="text-xs text-gray-300 mb-6 font-sans">Automatic engine acceleration paused. Return to the highway or select another vehicle.</p>
+
+            <div class="grid grid-cols-2 gap-3 bg-black/50 border border-white/10 rounded-2xl p-4 mb-6 text-left">
+                <div>
+                    <span class="text-[10px] font-orbitron text-gray-400 uppercase">Current Velocity</span>
+                    <span id="pause-speed" class="text-sm font-orbitron font-bold text-cyan-300 block">0 KM/H</span>
+                </div>
+                <div>
+                    <span class="text-[10px] font-orbitron text-gray-400 uppercase">Distance Traveled</span>
+                    <span id="pause-dist" class="text-sm font-mono font-bold text-amber-300 block">0 m</span>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-3">
+                <button id="btn-resume" class="w-full py-4 bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-500 hover:brightness-110 active:scale-95 text-slate-950 font-orbitron font-black text-sm tracking-widest uppercase rounded-2xl shadow-[0_0_30px_rgba(16,185,129,0.4)] cursor-pointer transition">
+                    CONTINUE RACING
+                </button>
+                <button id="btn-pause-restart" class="w-full py-3 bg-white/10 hover:bg-white/20 active:scale-95 text-gray-200 border border-white/20 font-orbitron font-bold text-xs tracking-wider uppercase rounded-xl cursor-pointer transition">
+                    RESTART RUN
+                </button>
+                <button id="btn-pause-garage" class="w-full py-3 bg-cyan-950/60 hover:bg-cyan-900/80 active:scale-95 text-cyan-300 border border-cyan-400/30 font-orbitron font-bold text-xs tracking-wider uppercase rounded-xl cursor-pointer transition">
+                    RETURN TO GARAGE
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================
+         GAME OVER MODAL
+         ========================================================= -->
+    <div id="modal-gameover" class="hidden absolute inset-0 z-30 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
+        <div class="cyber-panel border-2 border-rose-500 rounded-3xl p-6 sm:p-8 max-w-md w-full text-center shadow-[0_0_60px_rgba(244,63,94,0.4)]">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-500/20 border border-rose-500/50 mb-3">
+                <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
+                <span class="text-[11px] font-orbitron font-black text-rose-400 tracking-wider">COLLISION DETECTED</span>
+            </div>
+
+            <h2 class="text-4xl font-orbitron font-black text-white tracking-wider mb-2">CRASH REPORT</h2>
+            <p class="text-xs text-gray-300 mb-6">Structural limits exceeded due to dynamic highway traffic impact.</p>
+
+            <div class="grid grid-cols-2 gap-3 bg-black/60 border border-white/10 rounded-2xl p-4 mb-6 text-left">
+                <div>
+                    <span class="text-[10px] font-orbitron text-gray-400 uppercase">Final Score</span>
+                    <span id="final-score" class="text-2xl font-orbitron font-black text-amber-300 block">00000</span>
+                </div>
+                <div>
+                    <span class="text-[10px] font-orbitron text-gray-400 uppercase">Total Distance</span>
+                    <span id="final-dist" class="text-2xl font-orbitron font-black text-cyan-300 block">0 m</span>
+                </div>
+                <div>
+                    <span class="text-[10px] font-orbitron text-gray-400 uppercase">Top Speed Reached</span>
+                    <span id="final-speed" class="text-lg font-orbitron font-bold text-emerald-400 block">0 KM/H</span>
+                </div>
+                <div>
+                    <span class="text-[10px] font-orbitron text-gray-400 uppercase">Orbs Collected</span>
+                    <span id="final-orbs" class="text-lg font-orbitron font-bold text-purple-400 block">0</span>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-2.5">
+                <button id="btn-restart" class="w-full py-4 bg-gradient-to-r from-rose-500 via-amber-500 to-yellow-400 hover:brightness-110 active:scale-95 text-slate-950 font-orbitron font-black text-sm tracking-widest uppercase rounded-2xl shadow-[0_0_30px_rgba(244,63,94,0.4)] cursor-pointer transition">
+                    PLAY AGAIN
+                </button>
+                <button id="btn-gameover-garage" class="w-full py-3 bg-cyan-950/60 hover:bg-cyan-900/80 active:scale-95 text-cyan-300 border border-cyan-400/30 font-orbitron font-bold text-xs tracking-wider uppercase rounded-xl cursor-pointer transition">
+                    BACK TO VEHICLE GARAGE
+                </button>
+            </div>
+            <div class="mt-4 text-[10px] font-orbitron text-gray-500">DEVELOPED BY DHANANJAYA BARIK</div>
+        </div>
+    </div>
+
+    <!-- =========================================================
+         THREE.JS & GAME ENGINE CODE
+         ========================================================= -->
+    <script>
+        // Game State Enum
+        const GameState = {
+            GARAGE: 'garage',
+            PLAYING: 'playing',
+            PAUSED: 'paused',
+            GAMEOVER: 'gameover'
+        };
+        let gameState = GameState.GARAGE;
+
+        // Core Three.js Engine Variables
+        let scene, camera, renderer, clock;
+        let playerGroup, playerShieldMesh;
+        let garageTurntableGroup;
+        let roadSegments = [];
+        let skylineBuildings = [];
+        let speedParticles;
+        let trafficList = [];
+        let collectibleList = [];
+
+        // Mechanics & Speed Telemetry
+        let speed = 45;                // Current KM/H
+        let targetSpeed = 45;          // Target speed based on dynamic acceleration & input
+        let baseCruisingSpeed = 45;    // Progressive base speed (rises automatically)
+        let highwayDistance = 0;
+        let score = 0;
+        let turboFuel = 100;
+        let multiplier = 1;
+        let orbsCollected = 0;
+        let hasShield = false;
+        let shieldTimer = 0;
+        let maxObservedSpeed = 45;
+
+        // Player Lane & Steer Physics
+        let playerX = 0;
+        let playerBankAngle = 0;
+        const ROAD_WIDTH = 22;
+        const LANE_BOUND = 8.8;
+        const ROAD_SEG_LENGTH = 140;
+        const NUM_ROAD_SEGS = 4;
+
+        // Camera Dynamics
+        let cameraBaseY = 4.2;
+        let cameraBaseZ = 8.5;
+        let cameraShakeAmount = 0;
+
+        // Input States
+        const input = {
+            left: false,
+            right: false,
+            thrust: false,
+            brake: false,
+            push: false
+        };
+
+        // Web Audio Synthesizer
+        let audioCtx = null;
+        let engineOsc = null;
+        let engineGain = null;
+        let turboGainNode = null;
+
+        // =========================================================
+        // 10 VEHICLE ROSTER SPECIFICATION
+        // =========================================================
+        const VEHICLE_ROSTER = [
+            {
+                id: 'rickshaw',
+                name: 'CLASSIC AUTO RICKSHAW',
+                tier: 'TIER-1',
+                desc: 'Nimble 3-wheeled hover-trike with rapid lane weave response.',
+                color: '#10b981',
+                topSpeed: 185,
+                steerRate: 20,
+                accel: 80,
+                armor: 50,
+                maxCruise: 155,
+                builder: buildAutoRickshawModel
+            },
+            {
+                id: 'suv',
+                name: 'COMPACT CYBER SUV',
+                tier: 'TIER-1',
+                desc: 'Balanced 4x4 with reinforced luggage rails and all-terrain road grip.',
+                color: '#f97316',
+                topSpeed: 195,
+                steerRate: 17,
+                accel: 85,
+                armor: 70,
+                maxCruise: 165,
+                builder: buildCompactSUVModel
+            },
+            {
+                id: 'tractor',
+                name: 'HEAVY FARMING TRACTOR',
+                tier: 'TIER-2',
+                desc: 'Torque monster with articulated cargo trolley and heavy tread wheels.',
+                color: '#22c55e',
+                topSpeed: 165,
+                steerRate: 13,
+                accel: 65,
+                armor: 95,
+                maxCruise: 140,
+                builder: buildFarmingTractorModel
+            },
+            {
+                id: 'bus',
+                name: 'INTERCITY PASSENGER BUS',
+                tier: 'TIER-2',
+                desc: 'Twin-deck commuter coach with dual rear axles and high stability.',
+                color: '#06b6d4',
+                topSpeed: 180,
+                steerRate: 14,
+                accel: 70,
+                armor: 85,
+                maxCruise: 155,
+                builder: buildPassengerBusModel
+            },
+            {
+                id: 'lorry',
+                name: 'HEAVY CARGO LORRY',
+                tier: 'TIER-2',
+                desc: 'Rugged commercial logistics carrier built for punishing highway endurance.',
+                color: '#3b82f6',
+                topSpeed: 175,
+                steerRate: 13,
+                accel: 68,
+                armor: 90,
+                maxCruise: 150,
+                builder: buildCargoLorryModel
+            },
+            {
+                id: 'bike',
+                name: 'HIGH-SPEED SPORTS BIKE',
+                tier: 'TIER-3',
+                desc: 'Hyper-tuned twin-exhaust sportbike offering razor-sharp banking & peak speed.',
+                color: '#ef4444',
+                topSpeed: 235,
+                steerRate: 23,
+                accel: 98,
+                armor: 40,
+                maxCruise: 195,
+                builder: buildSportsBikeModel
+            },
+            {
+                id: 'fire',
+                name: 'EMERGENCY FIRE TRUCK',
+                tier: 'TIER-2',
+                desc: 'Heavy rescue engine equipped with twin roof ladders and high-power beacons.',
+                color: '#dc2626',
+                topSpeed: 185,
+                steerRate: 14,
+                accel: 75,
+                armor: 92,
+                maxCruise: 160,
+                builder: buildFireTruckModel
+            },
+            {
+                id: 'ambulance',
+                name: 'CITY AMBULANCE',
+                tier: 'TIER-1',
+                desc: 'Rapid-response medical cruiser tuned for swift traffic dispersion.',
+                color: '#f8fafc',
+                topSpeed: 200,
+                steerRate: 18,
+                accel: 88,
+                armor: 72,
+                maxCruise: 170,
+                builder: buildAmbulanceModel
+            },
+            {
+                id: 'excavator',
+                name: 'CONSTRUCTION EXCAVATOR',
+                tier: 'TIER-3',
+                desc: 'Tracked earthmover with an articulated hydraulic boom and steel chassis.',
+                color: '#eab308',
+                topSpeed: 155,
+                steerRate: 12,
+                accel: 60,
+                armor: 100,
+                maxCruise: 135,
+                builder: buildExcavatorModel
+            },
+            {
+                id: 'dj',
+                name: 'MOBILE DJ SOUND TRUCK',
+                tier: 'TIER-3',
+                desc: 'Vibrant festival soundstage on wheels featuring subwoofers & neon audio visualizer.',
+                color: '#a855f7',
+                topSpeed: 190,
+                steerRate: 15,
+                accel: 82,
+                armor: 78,
+                maxCruise: 165,
+                builder: buildDJSoundTruckModel
+            }
+        ];
+
+        let selectedVehicleIndex = 0;
+
+        // =========================================================
+        // WEB AUDIO SYSTEM
+        // =========================================================
+        function initAudio() {
+            if (audioCtx) return;
+            try {
+                const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioCtxClass();
+
+                // Engine Hum Synth
+                engineOsc = audioCtx.createOscillator();
+                engineGain = audioCtx.createGain();
+                engineOsc.type = 'sawtooth';
+                engineOsc.frequency.setValueAtTime(55, audioCtx.currentTime);
+
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(320, audioCtx.currentTime);
+
+                engineGain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                engineOsc.connect(filter);
+                filter.connect(engineGain);
+                engineGain.connect(audioCtx.destination);
+                engineOsc.start();
+
+                // Turbo whoosh node
+                const bufferSize = audioCtx.sampleRate * 2;
+                const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const output = noiseBuffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    output[i] = Math.random() * 2 - 1;
+                }
+                const whiteNoise = audioCtx.createBufferSource();
+                whiteNoise.buffer = noiseBuffer;
+                whiteNoise.loop = true;
+
+                const noiseFilter = audioCtx.createBiquadFilter();
+                noiseFilter.type = 'bandpass';
+                noiseFilter.frequency.setValueAtTime(850, audioCtx.currentTime);
+                noiseFilter.Q.setValueAtTime(3, audioCtx.currentTime);
+
+                turboGainNode = audioCtx.createGain();
+                turboGainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+
+                whiteNoise.connect(noiseFilter);
+                noiseFilter.connect(turboGainNode);
+                turboGainNode.connect(audioCtx.destination);
+                whiteNoise.start();
+            } catch(e) {}
+        }
+
+        function playPickupSound(type) {
+            if (!audioCtx) return;
+            try {
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'orb') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(587.33, now);
+                    osc.frequency.exponentialRampToValueAtTime(880, now + 0.12);
+                    gain.gain.setValueAtTime(0.25, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                } else if (type === 'turbo') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(220, now);
+                    osc.frequency.exponentialRampToValueAtTime(750, now + 0.25);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.32);
+                } else if (type === 'shield') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(440, now);
+                    osc.frequency.setValueAtTime(659.25, now + 0.08);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+                    osc.start(now);
+                    osc.stop(now + 0.45);
+                }
+            } catch(err) {}
+        }
+
+        function playCrashSound() {
+            if (!audioCtx) return;
+            try {
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(140, now);
+                osc.frequency.exponentialRampToValueAtTime(25, now + 0.5);
+                gain.gain.setValueAtTime(0.6, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.55);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.6);
+            } catch(e) {}
+        }
+
+        // =========================================================
+        // PROCEDURAL 3D VEHICLE GENERATORS (10 DISTINCT VEHICLES)
+        // =========================================================
+        function createCommonUnderglow() {
+            const underglowGeo = new THREE.PlaneGeometry(2.6, 4.2);
+            underglowGeo.rotateX(-Math.PI / 2);
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            const grad = ctx.createRadialGradient(64, 64, 10, 64, 64, 60);
+            grad.addColorStop(0, 'rgba(0, 240, 255, 0.95)');
+            grad.addColorStop(0.5, 'rgba(255, 0, 127, 0.55)');
+            grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 128, 128);
+
+            const tex = new THREE.CanvasTexture(canvas);
+            const underglowMat = new THREE.MeshBasicMaterial({
+                map: tex,
+                transparent: true,
+                opacity: 0.85,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+            const mesh = new THREE.Mesh(underglowGeo, underglowMat);
+            mesh.position.y = 0.04;
+            return mesh;
+        }
+
+        function makeWheel(r, w, tireColor = 0x18181b, rimColor = 0x00f0ff) {
+            const wG = new THREE.Group();
+            const tGeo = new THREE.CylinderGeometry(r, r, w, 16);
+            tGeo.rotateZ(Math.PI / 2);
+            const tMat = new THREE.MeshStandardMaterial({ color: tireColor, roughness: 0.9 });
+            const tMesh = new THREE.Mesh(tGeo, tMat);
+            tMesh.castShadow = true;
+            wG.add(tMesh);
+
+            const rGeo = new THREE.CylinderGeometry(r * 0.55, r * 0.55, w + 0.02, 10);
+            rGeo.rotateZ(Math.PI / 2);
+            const rMat = new THREE.MeshStandardMaterial({ color: rimColor, metalness: 0.8, roughness: 0.2 });
+            const rMesh = new THREE.Mesh(rGeo, rMat);
+            wG.add(rMesh);
+            return wG;
+        }
+
+        // 1. Classic Auto Rickshaw
+        function buildAutoRickshawModel() {
+            const g = new THREE.Group();
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x10b981, roughness: 0.3, metalness: 0.6 });
+            const hoodMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.4 });
+            const frameMat = new THREE.MeshStandardMaterial({ color: 0x090d16, roughness: 0.7 });
+            const glassMat = new THREE.MeshStandardMaterial({ color: 0x00f0ff, transparent: true, opacity: 0.65 });
+
+            const base = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.65, 3.2), bodyMat);
+            base.position.y = 0.6;
+            const nose = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.6, 1.1), bodyMat);
+            nose.position.set(0, 0.6, 1.8);
+            const top = new THREE.Mesh(new THREE.BoxGeometry(1.82, 0.85, 2.3), hoodMat);
+            top.position.set(0, 1.45, -0.2);
+            g.add(base, nose, top);
+
+            const wind = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.75), glassMat);
+            wind.position.set(0, 1.25, 1.05);
+            wind.rotation.x = -0.25;
+            g.add(wind);
+
+            g.add(makeWheel(0.38, 0.26).translateX(0).translateY(0.38).translateZ(1.7));
+            g.add(makeWheel(0.44, 0.32).translateX(-0.95).translateY(0.44).translateZ(-0.9));
+            g.add(makeWheel(0.44, 0.32).translateX(0.95).translateY(0.44).translateZ(-0.9));
+
+            const headlight = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.2, 12), new THREE.MeshBasicMaterial({ color: 0x00ffff }));
+            headlight.rotateX(Math.PI / 2);
+            headlight.position.set(0, 0.7, 2.35);
+            g.add(headlight);
+            g.add(createCommonUnderglow());
+            return g;
+        }
+
+        // 2. Compact SUV
+        function buildCompactSUVModel() {
+            const g = new THREE.Group();
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0xf97316, roughness: 0.3, metalness: 0.7 });
+            const trimMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 });
+            const glassMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.7 });
+
+            const chassis = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.9, 4.2), bodyMat);
+            chassis.position.y = 0.8;
+            const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.85, 2.5), trimMat);
+            cabin.position.set(0, 1.6, -0.2);
+            const rack = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.1, 2.0), new THREE.MeshStandardMaterial({ color: 0x00f0ff, metalness: 0.9 }));
+            rack.position.set(0, 2.1, -0.2);
+            g.add(chassis, cabin, rack);
+
+            g.add(makeWheel(0.5, 0.35).translateX(-1.1).translateY(0.5).translateZ(1.3));
+            g.add(makeWheel(0.5, 0.35).translateX(1.1).translateY(0.5).translateZ(1.3));
+            g.add(makeWheel(0.5, 0.35).translateX(-1.1).translateY(0.5).translateZ(-1.3));
+            g.add(makeWheel(0.5, 0.35).translateX(1.1).translateY(0.5).translateZ(-1.3));
+            g.add(createCommonUnderglow());
+            return g;
+        }
+
+        // 3. Farming Tractor with Trolley
+        function buildFarmingTractorModel() {
+            const g = new THREE.Group();
+            const greenMat = new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.4 });
+            const yellowMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.3 });
+            const metalMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.7 });
+
+            // Tractor Engine & Hood
+            const hood = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.1, 2.4), greenMat);
+            hood.position.set(0, 1.1, 0.6);
+            const cab = new THREE.Mesh(new THREE.BoxGeometry(1.7, 1.4, 1.4), yellowMat);
+            cab.position.set(0, 1.8, -0.8);
+            const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.2), metalMat);
+            pipe.position.set(0.6, 2.0, 1.2);
+            g.add(hood, cab, pipe);
+
+            // Large Rear Wheels & Small Front Wheels
+            g.add(makeWheel(0.42, 0.3, 0x111827, 0xfacc15).translateX(-0.95).translateY(0.42).translateZ(1.4));
+            g.add(makeWheel(0.42, 0.3, 0x111827, 0xfacc15).translateX(0.95).translateY(0.42).translateZ(1.4));
+            g.add(makeWheel(0.82, 0.45, 0x111827, 0xfacc15).translateX(-1.05).translateY(0.82).translateZ(-0.8));
+            g.add(makeWheel(0.82, 0.45, 0x111827, 0xfacc15).translateX(1.05).translateY(0.82).translateZ(-0.8));
+
+            // Articulated Trolley Trailer
+            const hitch = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.2, 1.2), metalMat);
+            hitch.position.set(0, 0.6, -2.0);
+            const trolleyBed = new THREE.Mesh(new THREE.BoxGeometry(2.3, 1.1, 3.2), new THREE.MeshStandardMaterial({ color: 0x92400e, roughness: 0.8 }));
+            trolleyBed.position.set(0, 1.1, -4.0);
+            g.add(hitch, trolleyBed);
+
+            g.add(makeWheel(0.6, 0.35, 0x111827, 0xfacc15).translateX(-1.1).translateY(0.6).translateZ(-4.0));
+            g.add(makeWheel(0.6, 0.35, 0x111827, 0xfacc15).translateX(1.1).translateY(0.6).translateZ(-4.0));
+            g.add(createCommonUnderglow());
+            return g;
+        }
+
+        // 4. Intercity Passenger Bus
+        function buildPassengerBusModel() {
+            const g = new THREE.Group();
+            const busMat = new THREE.MeshStandardMaterial({ color: 0x06b6d4, roughness: 0.2, metalness: 0.5 });
+            const glassMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.1 });
+
+            const body = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.4, 7.4), busMat);
+            body.position.y = 1.7;
+            const windows = new THREE.Mesh(new THREE.BoxGeometry(2.42, 0.8, 6.2), glassMat);
+            windows.position.set(0, 2.1, 0);
+            g.add(body, windows);
+
+            // Front Axle & Dual Rear Axles
+            g.add(makeWheel(0.5, 0.32).translateX(-1.2).translateY(0.5).translateZ(2.4));
+            g.add(makeWheel(0.5, 0.32).translateX(1.2).translateY(0.5).translateZ(2.4));
+            g.add(makeWheel(0.5, 0.32).translateX(-1.2).translateY(0.5).translateZ(-1.8));
+            g.add(makeWheel(0.5, 0.32).translateX(1.2).translateY(0.5).translateZ(-1.8));
+            g.add(makeWheel(0.5, 0.32).translateX(-1.2).translateY(0.5).translateZ(-2.8));
+            g.add(makeWheel(0.5, 0.32).translateX(1.2).translateY(0.5).translateZ(-2.8));
+            g.add(createCommonUnderglow());
+            return g;
+        }
+
+        // 5. Heavy Cargo Lorry
+        function buildCargoLorryModel() {
+            const g = new THREE.Group();
+            const cabMat = new THREE.MeshStandardMaterial({ color: 0x1d4ed8, roughness: 0.3, metalness: 0.6 });
+            const contMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.6 });
+
+            const cab = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.2, 2.4), cabMat);
+            cab.position.set(0, 1.7, 2.2);
+            const container = new THREE.Mesh(new THREE.BoxGeometry(2.5, 2.6, 5.8), contMat);
+            container.position.set(0, 2.0, -1.8);
+            g.add(cab, container);
+
+            g.add(makeWheel(0.55, 0.35).translateX(-1.25).translateY(0.55).translateZ(2.3));
+            g.add(makeWheel(0.55, 0.35).translateX(1.25).translateY(0.55).translateZ(2.3));
+            g.add(makeWheel(0.55, 0.35).translateX(-1.25).translateY(0.55).translateZ(-1.5));
+            g.add(makeWheel(0.55, 0.35).translateX(1.25).translateY(0.55).translateZ(-1.5));
+            g.add(makeWheel(0.55, 0.35).translateX(-1.25).translateY(0.55).translateZ(-2.7));
+            g.add(makeWheel(0.55, 0.35).translateX(1.25).translateY(0.55).translateZ(-2.7));
+            g.add(createCommonUnderglow());
+            return g;
+        }
+
+        // 6. High-Speed Sports Bike
+        function buildSportsBikeModel() {
+            const g = new THREE.Group();
+            const redMat = new THREE.MeshStandardMaterial({ color: 0xef4444, metalness: 0.8, roughness: 0.2 });
+            const frameMat = new THREE.MeshStandardMaterial({ color: 0x18181b, metalness: 0.9, roughness: 0.5 });
+
+            const frame = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.8, 2.6), redMat);
+            frame.position.y = 0.9;
+            const tank = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.5, 1.2), redMat);
+            tank.position.set(0, 1.3, 0.3);
+            const exhaust = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 1.4), new THREE.MeshBasicMaterial({ color: 0x00f0ff }));
+            exhaust.rotateX(Math.PI / 2.2);
+            exhaust.position.set(0.4, 0.7, -0.6);
+            g.add(frame, tank, exhaust);
+
+            g.add(makeWheel(0.5, 0.24, 0x18181b, 0xef4444).translateY(0.5).translateZ(1.2));
+            g.add(makeWheel(0.5, 0.32, 0x18181b, 0xef4444).translateY(0.5).translateZ(-1.2));
+            g.add(createCommonUnderglow());
+            return g;
+        }
+
+        // 7. Emergency Fire Truck
+        function buildFireTruckModel() {
+            const g = new THREE.Group();
+            const redMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, metalness: 0.4, roughness: 0.3 });
+            const silverMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.9 });
+
+            const body = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.2, 6.2), redMat);
+            body.position.y = 1.6;
+            const ladder = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.15, 5.0), silverMat);
+            ladder.position.set(0, 2.8, -0.4);
+            const beacon = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.2, 0.4), new THREE.MeshBasicMaterial({ color: 0x00f0ff }));
+            beacon.position.set(0, 2.8, 2.2);
+            g.add(body, ladder, beacon);
+
+            g.add(makeWheel(0.55, 0.35).translateX(-1.2).translateY(0.55).translateZ(2.0));
+            g.add(makeWheel(0.55, 0.35).translateX(1.2).translateY(0.55).translateZ(2.0));
+            g.add(makeWheel(0.55, 0.35).translateX(-1.2).translateY(0.55).translateZ(-1.8));
+            g.add(makeWheel(0.55, 0.35).translateX(1.2).translateY(0.55).translateZ(-1.8));
+            g.add(createCommonUnderglow());
+            return g;
+        }
+
+        // 8. City Ambulance
+        function buildAmbulanceModel() {
+            const g = new THREE.Group();
+            const whiteMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.3 });
+            const redCrossMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+
+            const van = new THREE.Mesh(new THREE.BoxGeometry(2.2, 2.1, 4.8), whiteMat);
+            van.position.y = 1.5;
+            const crossH = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.25, 0.05), redCrossMat);
+            crossH.position.set(-1.12, 1.6, 0);
+            crossH.rotateY(-Math.PI / 2);
+            const siren = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.2, 0.4), new THREE.MeshBasicMaterial({ color: 0xef4444 }));
+            siren.position.set(0, 2.65, 1.2);
+            g.add(van, crossH, siren);
+
+            g.add(makeWheel(0.5, 0.32).translateX(-1.1).translateY(0.5).translateZ(1.5));
+            g.add(makeWheel(0.5, 0.32).translateX(1.1).translateY(0.5).translateZ(1.5));
+            g.add(makeWheel(0.5, 0.32).translateX(-1.1).translateY(0.5).translateZ(-1.5));
+            g.add(makeWheel(0.5, 0.32).translateX(1.1).translateY(0.5).translateZ(-1.5));
+            g.add(createCommonUnderglow());
+            return g;
+        }
+
+        // 9. Construction Excavator
+        function buildExcavatorModel() {
+            const g = new THREE.Group();
+            const yelMat = new THREE.MeshStandardMaterial({ color: 0xeab308, roughness: 0.4, metalness: 0.5 });
+            const trackMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.9 });
+
+            // Tracks
+            const trackL = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.8, 4.4), trackMat);
+            trackL.position.set(-1.1, 0.4, 0);
+            const trackR = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.8, 4.4), trackMat);
+            trackR.position.set(1.1, 0.4, 0);
+
+            // Rotating Cab
+            const cab = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.6, 2.6), yelMat);
+            cab.position.set(0, 1.6, -0.2);
+
+            // Boom & Bucket
+            const boom = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.5, 3.2), yelMat);
+            boom.position.set(0, 2.3, 1.8);
+            boom.rotateX(-0.5);
+
+            const bucket = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.7, 0.9), new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.9 }));
+            bucket.position.set(0, 1.3, 3.4);
+            g.add(trackL, trackR, cab, boom, bucket);
+            g.add(createCommonUnderglow());
+            return g;
+        }
+
+        // 10. Mobile DJ Sound Truck
+        function buildDJSoundTruckModel() {
+            const g = new THREE.Group();
+            const purpMat = new THREE.MeshStandardMaterial({ color: 0x9333ea, metalness: 0.7, roughness: 0.3 });
+            const eqMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
+
+            const cab = new THREE.Mesh(new THREE.BoxGeometry(2.3, 1.8, 2.2), purpMat);
+            cab.position.set(0, 1.4, 2.0);
+            const stage = new THREE.Mesh(new THREE.BoxGeometry(2.5, 2.4, 4.4), new THREE.MeshStandardMaterial({ color: 0x18181b }));
+            stage.position.set(0, 1.7, -1.3);
+
+            // Visualizer Screen
+            const screen = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 1.4), eqMat);
+            screen.position.set(-1.26, 2.0, -1.3);
+            screen.rotateY(-Math.PI / 2);
+            g.add(cab, stage, screen);
+
+            g.add(makeWheel(0.55, 0.35).translateX(-1.2).translateY(0.55).translateZ(2.0));
+            g.add(makeWheel(0.55, 0.35).translateX(1.2).translateY(0.55).translateZ(2.0));
+            g.add(makeWheel(0.55, 0.35).translateX(-1.2).translateY(0.55).translateZ(-1.5));
+            g.add(makeWheel(0.55, 0.35).translateX(1.2).translateY(0.55).translateZ(-1.5));
+            g.add(createCommonUnderglow());
+            return g;
+        }
+
+        // =========================================================
+        // SCENE & ENVIRONMENT INITIALIZATION
+        // =========================================================
+        function initScene() {
+            const container = document.getElementById('game-canvas-container');
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x050414, 0.0075);
+
+            camera = new THREE.PerspectiveCamera(65, w / h, 0.1, 900);
+            camera.position.set(0, cameraBaseY, cameraBaseZ);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(w, h);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.15;
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            clock = new THREE.Clock();
+
+            // Lighting Setup
+            const ambient = new THREE.AmbientLight(0x38bdf8, 0.6);
+            scene.add(ambient);
+
+            const dirLight = new THREE.DirectionalLight(0xff007f, 1.4);
+            dirLight.position.set(30, 60, 40);
+            dirLight.castShadow = true;
+            scene.add(dirLight);
+
+            const cyanRim = new THREE.DirectionalLight(0x00f0ff, 1.8);
+            cyanRim.position.set(-40, 20, -50);
+            scene.add(cyanRim);
+
+            // Construct 3D World
+            buildRetroSkyline();
+            buildHighwayTracks();
+            buildSpeedParticles();
+
+            // Player Container Group
+            playerGroup = new THREE.Group();
+            scene.add(playerGroup);
+
+            // Shield Bubble
+            const shieldGeo = new THREE.SphereGeometry(2.7, 24, 24);
+            const shieldMat = new THREE.MeshBasicMaterial({
+                color: 0x00f0ff,
+                transparent: true,
+                opacity: 0.3,
+                wireframe: true
+            });
+            playerShieldMesh = new THREE.Mesh(shieldGeo, shieldMat);
+            playerShieldMesh.position.set(0, 1.3, 0);
+            playerShieldMesh.visible = false;
+            playerGroup.add(playerShieldMesh);
+
+            // Initial Vehicle load in Garage
+            setupGarageCarousel();
+            mountSelectedVehicleToGarage();
+
+            window.addEventListener('resize', onResize);
+        }
+
+        function buildRetroSkyline() {
+            const buildingGeo = new THREE.BoxGeometry(1, 1, 1);
+            const bldgCount = 70;
+
+            for (let i = 0; i < bldgCount; i++) {
+                const height = 40 + Math.random() * 110;
+                const width = 12 + Math.random() * 22;
+                const depth = 12 + Math.random() * 22;
+
+                const side = (i % 2 === 0 ? 1 : -1);
+                const xPos = side * (ROAD_WIDTH + 35 + Math.random() * 120);
+                const zPos = -180 + (Math.random() * 450) - 200;
+
+                const colorPick = Math.random() > 0.5 ? 0x0f172a : 0x050814;
+                const mat = new THREE.MeshStandardMaterial({
+                    color: colorPick,
+                    roughness: 0.8,
+                    metalness: 0.2
+                });
+
+                const building = new THREE.Mesh(buildingGeo, mat);
+                building.scale.set(width, height, depth);
+                building.position.set(xPos, height / 2 - 5, zPos);
+                scene.add(building);
+                skylineBuildings.push(building);
+
+                if (Math.random() > 0.4) {
+                    const holoGeo = new THREE.PlaneGeometry(width * 0.8, 6);
+                    const holoMat = new THREE.MeshBasicMaterial({
+                        color: Math.random() > 0.5 ? 0x00f0ff : 0xff007f,
+                        side: THREE.DoubleSide
+                    });
+                    const holo = new THREE.Mesh(holoGeo, holoMat);
+                    holo.position.set(xPos, height - 2, zPos + depth / 2 + 0.1);
+                    scene.add(holo);
+                }
+            }
+
+            const gridHelper = new THREE.GridHelper(600, 60, 0xff007f, 0x00f0ff);
+            gridHelper.position.set(0, -0.4, -120);
+            scene.add(gridHelper);
+        }
+
+        function buildHighwayTracks() {
+            roadSegments = [];
+            for (let i = 0; i < NUM_ROAD_SEGS; i++) {
+                const seg = new THREE.Group();
+                const zPos = -i * ROAD_SEG_LENGTH;
+
+                const aspGeo = new THREE.PlaneGeometry(ROAD_WIDTH, ROAD_SEG_LENGTH);
+                aspGeo.rotateX(-Math.PI / 2);
+                const aspMat = new THREE.MeshStandardMaterial({ color: 0x080914, roughness: 0.85 });
+                const asphalt = new THREE.Mesh(aspGeo, aspMat);
+                asphalt.receiveShadow = true;
+                seg.add(asphalt);
+
+                const barGeo = new THREE.BoxGeometry(0.5, 0.9, ROAD_SEG_LENGTH);
+                const barL = new THREE.Mesh(barGeo, new THREE.MeshBasicMaterial({ color: 0x00f0ff }));
+                barL.position.set(-ROAD_WIDTH / 2, 0.45, 0);
+                const barR = new THREE.Mesh(barGeo, new THREE.MeshBasicMaterial({ color: 0xff007f }));
+                barR.position.set(ROAD_WIDTH / 2, 0.45, 0);
+                seg.add(barL, barR);
+
+                const stripeMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+                const dashes = 18;
+                const spacing = ROAD_SEG_LENGTH / dashes;
+                for (let d = 0; d < dashes; d++) {
+                    const dZ = -ROAD_SEG_LENGTH / 2 + d * spacing;
+                    const stripe1 = new THREE.Mesh(new THREE.PlaneGeometry(0.24, 3.8), stripeMat);
+                    stripe1.rotateX(-Math.PI / 2);
+                    stripe1.position.set(-ROAD_WIDTH / 3.4, 0.02, dZ);
+
+                    const stripe2 = new THREE.Mesh(new THREE.PlaneGeometry(0.24, 3.8), stripeMat);
+                    stripe2.rotateX(-Math.PI / 2);
+                    stripe2.position.set(ROAD_WIDTH / 3.4, 0.02, dZ);
+                    seg.add(stripe1, stripe2);
+                }
+
+                seg.position.set(0, 0, zPos);
+                scene.add(seg);
+                roadSegments.push(seg);
+            }
+        }
+
+        function buildSpeedParticles() {
+            const count = 450;
+            const geo = new THREE.BufferGeometry();
+            const pos = new Float32Array(count * 3);
+
+            for (let i = 0; i < count; i++) {
+                pos[i * 3] = (Math.random() - 0.5) * 50;
+                pos[i * 3 + 1] = Math.random() * 20;
+                pos[i * 3 + 2] = -Math.random() * 250;
+            }
+
+            geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+            const mat = new THREE.PointsMaterial({
+                color: 0x00f0ff,
+                size: 0.35,
+                transparent: true,
+                opacity: 0.55
+            });
+
+            speedParticles = new THREE.Points(geo, mat);
+            scene.add(speedParticles);
+        }
+
+        // =========================================================
+        // GARAGE DASHBOARD INTERACTION
+        // =========================================================
+        function setupGarageCarousel() {
+            const container = document.getElementById('vehicle-cards-container');
+            container.innerHTML = '';
+
+            VEHICLE_ROSTER.forEach((veh, index) => {
+                const card = document.createElement('button');
+                card.id = `veh-card-${index}`;
+                card.className = `min-w-[130px] p-2.5 rounded-xl border flex flex-col items-center justify-center transition-all cursor-pointer ${
+                    index === selectedVehicleIndex 
+                        ? 'bg-cyan-500/20 border-cyan-400 shadow-[0_0_15px_rgba(0,240,255,0.4)] scale-105' 
+                        : 'bg-black/50 border-white/10 hover:border-cyan-400/50 opacity-70'
+                }`;
+
+                card.innerHTML = `
+                    <div class="w-7 h-7 rounded-full mb-1 flex items-center justify-center" style="background-color: ${veh.color}25; border: 1px solid ${veh.color}">
+                        <span class="text-xs">🏎️</span>
+                    </div>
+                    <span class="text-[11px] font-orbitron font-bold truncate max-w-[110px] text-white">${veh.name}</span>
+                    <span class="text-[9px] font-mono text-cyan-300">${veh.topSpeed} KM/H</span>
+                `;
+
+                card.addEventListener('click', () => {
+                    selectVehicle(index);
+                });
+
+                container.appendChild(card);
+            });
+
+            updateGarageUI();
+        }
+
+        function selectVehicle(index) {
+            selectedVehicleIndex = index;
+
+            // Highlight Cards
+            VEHICLE_ROSTER.forEach((_, i) => {
+                const el = document.getElementById(`veh-card-${i}`);
+                if (el) {
+                    if (i === selectedVehicleIndex) {
+                        el.className = 'min-w-[130px] p-2.5 rounded-xl border flex flex-col items-center justify-center transition-all cursor-pointer bg-cyan-500/20 border-cyan-400 shadow-[0_0_15px_rgba(0,240,255,0.4)] scale-105';
+                    } else {
+                        el.className = 'min-w-[130px] p-2.5 rounded-xl border flex flex-col items-center justify-center transition-all cursor-pointer bg-black/50 border-white/10 hover:border-cyan-400/50 opacity-70';
+                    }
+                }
+            });
+
+            updateGarageUI();
+            mountSelectedVehicleToGarage();
+        }
+
+        function updateGarageUI() {
+            const veh = VEHICLE_ROSTER[selectedVehicleIndex];
+            document.getElementById('garage-veh-name').innerText = veh.name;
+            document.getElementById('garage-veh-desc').innerText = veh.desc;
+            document.getElementById('garage-veh-badge').innerText = veh.tier;
+            document.getElementById('garage-veh-id').innerText = `#0${selectedVehicleIndex + 1} / 10`;
+            document.getElementById('garage-veh-current').innerText = veh.name;
+
+            document.getElementById('garage-stat-speed').innerText = `${veh.topSpeed} KM/H`;
+            document.getElementById('garage-stat-steer').innerText = `${Math.round((veh.steerRate / 24) * 100)}%`;
+            document.getElementById('garage-stat-accel').innerText = `${veh.accel}%`;
+            document.getElementById('garage-stat-armor').innerText = `${veh.armor}%`;
+
+            document.getElementById('bar-stat-speed').style.width = `${(veh.topSpeed / 240) * 100}%`;
+            document.getElementById('bar-stat-steer').style.width = `${(veh.steerRate / 24) * 100}%`;
+            document.getElementById('bar-stat-accel').style.width = `${veh.accel}%`;
+            document.getElementById('bar-stat-armor').style.width = `${veh.armor}%`;
+        }
+
+        function mountSelectedVehicleToGarage() {
+            // Remove previous vehicle meshes except shield
+            while(playerGroup.children.length > 0) {
+                const child = playerGroup.children[0];
+                if (child === playerShieldMesh) {
+                    playerGroup.remove(playerShieldMesh);
+                    break;
+                }
+                playerGroup.remove(child);
+            }
+
+            const veh = VEHICLE_ROSTER[selectedVehicleIndex];
+            const mesh = veh.builder();
+            playerGroup.add(mesh);
+            playerGroup.add(playerShieldMesh);
+
+            // Center position for garage turntable
+            playerGroup.position.set(0, 0, 0);
+            playerGroup.rotation.set(0, -Math.PI / 4, 0);
+
+            // Update in-game HUD badge
+            document.getElementById('hud-active-veh-name').innerText = veh.name;
+        }
+
+        function deployToHighway() {
+            initAudio();
+            gameState = GameState.PLAYING;
+
+            // Hide Garage Screen, Reveal HUD
+            document.getElementById('screen-garage').classList.add('hidden');
+            document.getElementById('hud').classList.remove('hidden');
+
+            // Reset game session stats
+            speed = 45;
+            baseCruisingSpeed = 45;
+            targetSpeed = 45;
+            highwayDistance = 0;
+            score = 0;
+            turboFuel = 100;
+            multiplier = 1;
+            orbsCollected = 0;
+            hasShield = false;
+            maxObservedSpeed = 45;
+            playerX = 0;
+            playerBankAngle = 0;
+
+            playerGroup.rotation.set(0, 0, 0);
+            playerGroup.position.set(0, 0, 0);
+
+            showToast('🚀', `${VEHICLE_ROSTER[selectedVehicleIndex].name} DEPLOYED!`);
+        }
+
+        function returnToGarage() {
+            gameState = GameState.GARAGE;
+
+            // Hide Game Over & Pause modals
+            document.getElementById('modal-pause').classList.add('hidden');
+            document.getElementById('modal-gameover').classList.add('hidden');
+            document.getElementById('hud').classList.add('hidden');
+            document.getElementById('screen-garage').classList.remove('hidden');
+
+            // Clear traffic & powerups
+            trafficList.forEach(t => scene.remove(t.mesh));
+            collectibleList.forEach(c => scene.remove(c.mesh));
+            trafficList = [];
+            collectibleList = [];
+
+            // Reset camera for turntable inspection
+            camera.position.set(0, 3.2, 7.5);
+            camera.lookAt(0, 0.8, 0);
+
+            mountSelectedVehicleToGarage();
+
+            if (engineGain && audioCtx) engineGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
+            if (turboGainNode && audioCtx) turboGainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
+        }
+
+        // =========================================================
+        // PROCEDURAL TRAFFIC & COLLECTIBLES
+        // =========================================================
+        function buildTrafficMesh(type) {
+            const g = new THREE.Group();
+            let bodyColor = 0xff0055;
+
+            if (type === 'car') {
+                bodyColor = 0x6366f1;
+                const b = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.8, 4.2), new THREE.MeshStandardMaterial({ color: bodyColor, metalness: 0.8, roughness: 0.2 }));
+                b.position.y = 0.55;
+                const c = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.7, 2.2), new THREE.MeshStandardMaterial({ color: 0x00f0ff, roughness: 0.1, transparent: true, opacity: 0.7 }));
+                c.position.set(0, 1.25, -0.3);
+                g.add(b, c);
+            } else if (type === 'truck') {
+                bodyColor = 0xf59e0b;
+                const cab = new THREE.Mesh(new THREE.BoxGeometry(2.4, 2.2, 2.4), new THREE.MeshStandardMaterial({ color: bodyColor, metalness: 0.7 }));
+                cab.position.set(0, 1.5, 2.0);
+                const trailer = new THREE.Mesh(new THREE.BoxGeometry(2.5, 2.6, 6.0), new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5 }));
+                trailer.position.set(0, 1.8, -2.0);
+                g.add(cab, trailer);
+            } else if (type === 'bike') {
+                bodyColor = 0xec4899;
+                const bikeBody = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.7, 2.4), new THREE.MeshStandardMaterial({ color: bodyColor, metalness: 0.9 }));
+                bikeBody.position.y = 0.65;
+                g.add(bikeBody);
+            }
+
+            const tLight = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.15, 0.1), new THREE.MeshBasicMaterial({ color: 0xff0033 }));
+            tLight.position.set(0, 0.7, -2.1);
+            g.add(tLight);
+
+            return g;
+        }
+
+        function spawnTraffic() {
+            const lanes = [-6.2, -2.1, 2.1, 6.2];
+            const types = ['car', 'truck', 'bike'];
+            const lane = lanes[Math.floor(Math.random() * lanes.length)];
+            const type = types[Math.floor(Math.random() * types.length)];
+
+            const mesh = buildTrafficMesh(type);
+            const startZ = -220 - Math.random() * 80;
+            mesh.position.set(lane, 0, startZ);
+            scene.add(mesh);
+
+            trafficList.push({
+                mesh: mesh,
+                type: type,
+                speed: 35 + Math.random() * 45,
+                lane: lane,
+                bbox: new THREE.Box3()
+            });
+        }
+
+        function spawnCollectible() {
+            const lanes = [-6.2, -2.1, 2.1, 6.2];
+            const lane = lanes[Math.floor(Math.random() * lanes.length)];
+            const types = ['orb', 'orb', 'turbo', 'shield'];
+            const type = types[Math.floor(Math.random() * types.length)];
+
+            const group = new THREE.Group();
+            let color = 0x00f0ff;
+
+            if (type === 'orb') {
+                color = 0xa855f7;
+                const geo = new THREE.DodecahedronGeometry(0.65);
+                const mat = new THREE.MeshStandardMaterial({ color: color, emissive: 0xa855f7, emissiveIntensity: 0.9, roughness: 0.2 });
+                group.add(new THREE.Mesh(geo, mat));
+            } else if (type === 'turbo') {
+                color = 0xf59e0b;
+                const geo = new THREE.CylinderGeometry(0.35, 0.35, 1.1, 12);
+                const mat = new THREE.MeshStandardMaterial({ color: color, emissive: 0xf59e0b, emissiveIntensity: 1.0 });
+                group.add(new THREE.Mesh(geo, mat));
+            } else if (type === 'shield') {
+                color = 0x00f0ff;
+                const geo = new THREE.TorusGeometry(0.6, 0.16, 12, 24);
+                const mat = new THREE.MeshBasicMaterial({ color: color, wireframe: true });
+                group.add(new THREE.Mesh(geo, mat));
+            }
+
+            group.position.set(lane, 1.1, -220 - Math.random() * 60);
+            scene.add(group);
+
+            collectibleList.push({
+                mesh: group,
+                type: type,
+                rotSpeed: 2.5 + Math.random() * 2
+            });
+        }
+
+        let toastTimeout = null;
+        function showToast(icon, msg) {
+            const toast = document.getElementById('hud-toast');
+            document.getElementById('toast-icon').innerText = icon;
+            document.getElementById('toast-msg').innerText = msg;
+            toast.classList.remove('opacity-0', 'translate-y-4');
+
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-4');
+            }, 1800);
+        }
+
+        // =========================================================
+        // CONTROLS & BINDINGS
+        // =========================================================
+        function setupControls() {
+            window.addEventListener('keydown', (e) => {
+                initAudio();
+
+                if (e.key === 'p' || e.key === 'P' || e.key === 'Escape') {
+                    if (gameState === GameState.PLAYING || gameState === GameState.PAUSED) {
+                        togglePause();
+                    }
+                    return;
+                }
+
+                if (gameState !== GameState.PLAYING) return;
+
+                switch(e.key.toLowerCase()) {
+                    case 'arrowleft':
+                    case 'a':
+                        input.left = true;
+                        break;
+                    case 'arrowright':
+                    case 'd':
+                        input.right = true;
+                        break;
+                    case 'arrowup':
+                    case 'w':
+                        input.thrust = true;
+                        break;
+                    case 'arrowdown':
+                    case 's':
+                        input.brake = true;
+                        break;
+                    case ' ':
+                    case 'shift':
+                        input.push = true;
+                        break;
+                }
+            });
+
+            window.addEventListener('keyup', (e) => {
+                switch(e.key.toLowerCase()) {
+                    case 'arrowleft':
+                    case 'a':
+                        input.left = false;
+                        break;
+                    case 'arrowright':
+                    case 'd':
+                        input.right = false;
+                        break;
+                    case 'arrowup':
+                    case 'w':
+                        input.thrust = false;
+                        break;
+                    case 'arrowdown':
+                    case 's':
+                        input.brake = false;
+                        break;
+                    case ' ':
+                    case 'shift':
+                        input.push = false;
+                        break;
+                }
+            });
+
+            function bindBtn(id, key) {
+                const el = document.getElementById(id);
+                if (!el) return;
+
+                const press = (ev) => {
+                    ev.preventDefault();
+                    initAudio();
+                    input[key] = true;
+                };
+                const release = (ev) => {
+                    ev.preventDefault();
+                    input[key] = false;
+                };
+
+                el.addEventListener('mousedown', press);
+                el.addEventListener('mouseup', release);
+                el.addEventListener('mouseleave', release);
+
+                el.addEventListener('touchstart', press, { passive: false });
+                el.addEventListener('touchend', release, { passive: false });
+                el.addEventListener('touchcancel', release, { passive: false });
+            }
+
+            bindBtn('ctrl-left', 'left');
+            bindBtn('ctrl-right', 'right');
+            bindBtn('ctrl-thrust', 'thrust');
+            bindBtn('ctrl-brake', 'brake');
+            bindBtn('ctrl-push', 'push');
+
+            // Garage Buttons
+            document.getElementById('btn-prev-veh').addEventListener('click', () => {
+                const prev = (selectedVehicleIndex - 1 + VEHICLE_ROSTER.length) % VEHICLE_ROSTER.length;
+                selectVehicle(prev);
+            });
+            document.getElementById('btn-next-veh').addEventListener('click', () => {
+                const next = (selectedVehicleIndex + 1) % VEHICLE_ROSTER.length;
+                selectVehicle(next);
+            });
+            document.getElementById('btn-deploy-race').addEventListener('click', deployToHighway);
+
+            // Modals Buttons
+            document.getElementById('btn-pause').addEventListener('click', togglePause);
+            document.getElementById('btn-resume').addEventListener('click', togglePause);
+            document.getElementById('btn-pause-restart').addEventListener('click', restartCurrentRace);
+            document.getElementById('btn-pause-garage').addEventListener('click', returnToGarage);
+
+            document.getElementById('btn-restart').addEventListener('click', restartCurrentRace);
+            document.getElementById('btn-gameover-garage').addEventListener('click', returnToGarage);
+        }
+
+        function togglePause() {
+            if (gameState === GameState.PLAYING) {
+                gameState = GameState.PAUSED;
+                document.getElementById('pause-speed').innerText = Math.round(speed) + ' KM/H';
+                document.getElementById('pause-dist').innerText = Math.floor(highwayDistance) + ' m';
+                document.getElementById('modal-pause').classList.remove('hidden');
+
+                if (engineGain && audioCtx) engineGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
+                if (turboGainNode && audioCtx) turboGainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
+            } else if (gameState === GameState.PAUSED) {
+                gameState = GameState.PLAYING;
+                document.getElementById('modal-pause').classList.add('hidden');
+            }
+        }
+
+        function restartCurrentRace() {
+            trafficList.forEach(t => scene.remove(t.mesh));
+            collectibleList.forEach(c => scene.remove(c.mesh));
+            trafficList = [];
+            collectibleList = [];
+
+            speed = 45;
+            baseCruisingSpeed = 45;
+            targetSpeed = 45;
+            highwayDistance = 0;
+            score = 0;
+            turboFuel = 100;
+            multiplier = 1;
+            orbsCollected = 0;
+            hasShield = false;
+            shieldTimer = 0;
+            maxObservedSpeed = 45;
+            playerX = 0;
+            playerBankAngle = 0;
+            cameraShakeAmount = 0;
+
+            if (playerShieldMesh) playerShieldMesh.visible = false;
+            document.getElementById('hud-shield-status').innerText = 'OFFLINE';
+            document.getElementById('hud-shield-status').className = 'text-[10px] font-orbitron font-bold text-gray-500';
+
+            document.getElementById('modal-pause').classList.add('hidden');
+            document.getElementById('modal-gameover').classList.add('hidden');
+            gameState = GameState.PLAYING;
+        }
+
+        function gameOver() {
+            gameState = GameState.GAMEOVER;
+            playCrashSound();
+
+            if (engineGain && audioCtx) engineGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
+            if (turboGainNode && audioCtx) turboGainNode.gain.setTargetAtTime(0, audioCtx.currentTime, 0.05);
+
+            document.getElementById('final-score').innerText = String(score).padStart(5, '0');
+            document.getElementById('final-dist').innerText = Math.floor(highwayDistance) + ' m';
+            document.getElementById('final-speed').innerText = Math.round(maxObservedSpeed) + ' KM/H';
+            document.getElementById('final-orbs').innerText = orbsCollected;
+
+            document.getElementById('modal-gameover').classList.remove('hidden');
+        }
+
+        // =========================================================
+        // MAIN PHYSICS LOOP & AUTOMATIC SPEED SYSTEM
+        // =========================================================
+        let trafficSpawnTimer = 0;
+        let collectibleSpawnTimer = 0;
+
+        function updateGame(delta) {
+            const veh = VEHICLE_ROSTER[selectedVehicleIndex];
+
+            // 1. AUTOMATIC PROGRESSIVE ACCELERATION
+            // Base speed increases automatically as distance and time grow
+            baseCruisingSpeed = Math.min(veh.maxCruise, 45 + (highwayDistance / 75));
+
+            const isPushingTurbo = (input.push || input.thrust) && turboFuel > 5;
+
+            if (isPushingTurbo && input.push) {
+                targetSpeed = veh.topSpeed;
+                turboFuel = Math.max(0, turboFuel - delta * 35);
+                cameraShakeAmount = 0.18;
+            } else if (input.thrust) {
+                targetSpeed = veh.maxCruise + 15;
+                turboFuel = Math.min(100, turboFuel + delta * 6);
+            } else if (input.brake) {
+                targetSpeed = 25; // Active air-brake override
+                turboFuel = Math.min(100, turboFuel + delta * 14);
+            } else {
+                // AUTOMATIC SPEED: Maintains progressive cruising velocity hands-free
+                targetSpeed = baseCruisingSpeed;
+                turboFuel = Math.min(100, turboFuel + delta * 8);
+            }
+
+            // Vehicle-specific acceleration response
+            const accelFactor = (veh.accel / 100) * 3.2;
+            speed += (targetSpeed - speed) * Math.min(delta * accelFactor, 1.0);
+            maxObservedSpeed = Math.max(maxObservedSpeed, speed);
+
+            const worldSpeed = (speed * 1000) / 3600; // m/s
+            highwayDistance += worldSpeed * delta;
+            score += Math.floor(worldSpeed * delta * 1.8 * multiplier);
+
+            // 2. Lateral Player Movement & Banking
+            let targetBank = 0;
+            if (input.left) {
+                playerX -= veh.steerRate * delta;
+                targetBank = 0.28;
+            }
+            if (input.right) {
+                playerX += veh.steerRate * delta;
+                targetBank = -0.28;
+            }
+
+            playerX = Math.max(-LANE_BOUND, Math.min(LANE_BOUND, playerX));
+            playerBankAngle += (targetBank - playerBankAngle) * 0.16;
+
+            playerGroup.position.x = playerX;
+            playerGroup.position.y = 0;
+            playerGroup.rotation.z = playerBankAngle;
+            playerGroup.rotation.y = -playerBankAngle * 0.45;
+
+            // Shield Pulse
+            if (hasShield) {
+                shieldTimer -= delta;
+                playerShieldMesh.rotation.y += delta * 2;
+                playerShieldMesh.rotation.x += delta;
+                if (shieldTimer <= 0) {
+                    hasShield = false;
+                    playerShieldMesh.visible = false;
+                    document.getElementById('hud-shield-status').innerText = 'OFFLINE';
+                    document.getElementById('hud-shield-status').className = 'text-[10px] font-orbitron font-bold text-gray-500';
+                    showToast('🛡️', 'SHIELD DEPLETED');
+                }
+            }
+
+            // 3. Move Highway Segments
+            roadSegments.forEach(seg => {
+                seg.position.z += worldSpeed * delta;
+                if (seg.position.z > ROAD_SEG_LENGTH) {
+                    seg.position.z -= NUM_ROAD_SEGS * ROAD_SEG_LENGTH;
+                }
+            });
+
+            // 4. Update Speed Warp Particles
+            const pPositions = speedParticles.geometry.attributes.position.array;
+            for (let i = 0; i < pPositions.length; i += 3) {
+                pPositions[i + 2] += (worldSpeed * 1.5) * delta;
+                if (pPositions[i + 2] > 20) {
+                    pPositions[i + 2] = -250;
+                    pPositions[i] = (Math.random() - 0.5) * 50;
+                }
+            }
+            speedParticles.geometry.attributes.position.needsUpdate = true;
+
+            // 5. Spawn & Update Traffic (Density scales automatically with speed & distance)
+            trafficSpawnTimer += delta;
+            const spawnInterval = Math.max(0.55, 2.0 - (highwayDistance / 2400));
+            if (trafficSpawnTimer > spawnInterval) {
+                trafficSpawnTimer = 0;
+                if (trafficList.length < 18) {
+                    spawnTraffic();
+                }
+            }
+
+            const playerBox = new THREE.Box3().setFromObject(playerGroup);
+            playerBox.expandByScalar(-0.4);
+
+            for (let i = trafficList.length - 1; i >= 0; i--) {
+                const tv = trafficList[i];
+                const tvWorldSpeed = (tv.speed * 1000) / 3600;
+                tv.mesh.position.z += (worldSpeed - tvWorldSpeed) * delta;
+
+                if (tv.mesh.position.z > 25) {
+                    scene.remove(tv.mesh);
+                    trafficList.splice(i, 1);
+                    continue;
+                }
+
+                tv.bbox.setFromObject(tv.mesh);
+                tv.bbox.expandByScalar(-0.4);
+                if (playerBox.intersectsBox(tv.bbox)) {
+                    if (hasShield) {
+                        hasShield = false;
+                        playerShieldMesh.visible = false;
+                        document.getElementById('hud-shield-status').innerText = 'OFFLINE';
+                        document.getElementById('hud-shield-status').className = 'text-[10px] font-orbitron font-bold text-gray-500';
+                        playPickupSound('shield');
+                        showToast('💥', 'SHIELD ABSORBED HIT!');
+                        tv.mesh.position.z += 20;
+                        cameraShakeAmount = 0.35;
+                    } else {
+                        gameOver();
+                        return;
+                    }
+                }
+            }
+
+            // 6. Spawn & Update Collectibles
+            collectibleSpawnTimer += delta;
+            if (collectibleSpawnTimer > 2.2) {
+                collectibleSpawnTimer = 0;
+                if (collectibleList.length < 6) {
+                    spawnCollectible();
+                }
+            }
+
+            for (let i = collectibleList.length - 1; i >= 0; i--) {
+                const item = collectibleList[i];
+                item.mesh.position.z += worldSpeed * delta;
+                item.mesh.rotation.y += item.rotSpeed * delta;
+
+                if (item.mesh.position.z > 20) {
+                    scene.remove(item.mesh);
+                    collectibleList.splice(i, 1);
+                    continue;
+                }
+
+                const dx = playerX - item.mesh.position.x;
+                const dz = item.mesh.position.z;
+                if (Math.abs(dx) < 1.6 && Math.abs(dz) < 1.8) {
+                    if (item.type === 'orb') {
+                        score += 350 * multiplier;
+                        orbsCollected++;
+                        multiplier = Math.min(5, multiplier + 1);
+                        document.getElementById('hud-multiplier').innerText = multiplier + 'X';
+                        playPickupSound('orb');
+                        showToast('💎', '+350 ENERGY ORB');
+                    } else if (item.type === 'turbo') {
+                        turboFuel = 100;
+                        targetSpeed = veh.topSpeed;
+                        playPickupSound('turbo');
+                        showToast('⚡', 'NITRO FULLY RECHARGED');
+                    } else if (item.type === 'shield') {
+                        hasShield = true;
+                        shieldTimer = 10;
+                        playerShieldMesh.visible = true;
+                        document.getElementById('hud-shield-status').innerText = 'ACTIVE';
+                        document.getElementById('hud-shield-status').className = 'text-[10px] font-orbitron font-bold text-cyan-300 animate-pulse';
+                        playPickupSound('shield');
+                        showToast('🛡️', 'CYBER SHIELD ACTIVE (10s)');
+                    }
+
+                    scene.remove(item.mesh);
+                    collectibleList.splice(i, 1);
+                }
+            }
+
+            // 7. Dynamic Camera Following with FOV warp & Shake
+            const fovTarget = isPushingTurbo ? 76 : 62;
+            camera.fov += (fovTarget - camera.fov) * 0.1;
+            camera.updateProjectionMatrix();
+
+            let shakeX = (Math.random() - 0.5) * cameraShakeAmount;
+            let shakeY = (Math.random() - 0.5) * cameraShakeAmount;
+            cameraShakeAmount = Math.max(0, cameraShakeAmount - delta * 0.8);
+
+            camera.position.x = (playerX * 0.42) + shakeX;
+            camera.position.y = cameraBaseY + (speed / 140) + shakeY;
+            camera.position.z = cameraBaseZ + (speed / 180);
+            camera.lookAt(playerX * 0.6, 1.2, -25);
+
+            // 8. Synthesizer Sound Engine
+            if (audioCtx && engineOsc && engineGain) {
+                const pitch = 50 + (speed * 1.8);
+                engineOsc.frequency.setTargetAtTime(pitch, audioCtx.currentTime, 0.05);
+
+                const isNitro = isPushingTurbo && input.push;
+                if (turboGainNode) {
+                    turboGainNode.gain.setTargetAtTime(isNitro ? 0.35 : 0, audioCtx.currentTime, 0.05);
+                }
+            }
+
+            // 9. Update UI HUD
+            document.getElementById('hud-speed').innerText = Math.round(speed);
+            document.getElementById('hud-score').innerText = String(score).padStart(5, '0');
+            document.getElementById('hud-dist').innerText = Math.floor(highwayDistance);
+            document.getElementById('hud-nitro-val').innerText = Math.round(turboFuel) + '%';
+            document.getElementById('hud-nitro-bar').style.width = turboFuel + '%';
+        }
+
+        // =========================================================
+        // GARAGE TURNTABLE ROTATION LOOP
+        // =========================================================
+        function updateGarage(delta) {
+            if (playerGroup) {
+                playerGroup.rotation.y += delta * 0.75; // Smooth 360 showcase spin
+            }
+
+            // Gentle slow road crawl in the background
+            roadSegments.forEach(seg => {
+                seg.position.z += 8 * delta;
+                if (seg.position.z > ROAD_SEG_LENGTH) {
+                    seg.position.z -= NUM_ROAD_SEGS * ROAD_SEG_LENGTH;
+                }
+            });
+        }
+
+        // =========================================================
+        // MASTER ANIMATION LOOP
+        // =========================================================
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = Math.min(clock.getDelta(), 0.1);
+
+            if (gameState === GameState.GARAGE) {
+                updateGarage(delta);
+            } else if (gameState === GameState.PLAYING) {
+                updateGame(delta);
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        function onResize() {
+            if (!camera || !renderer) return;
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
+        }
+
+        window.onload = function() {
+            initScene();
+            setupControls();
+            animate();
+        };
+    </script>
+</body>
+</html>
